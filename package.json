@@ -1,0 +1,19 @@
+{
+  "name": "kwenta-data",
+  "version": "1.0.0",
+  "description": "Repository of useful utilities for analysing usage of Kwenta",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kwenta/kwenta-data.git"
+  },
+  "author": "Kwenta DAO",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/Kwenta/kwenta-data/issues"
+  },
+  "homepage": "https://github.com/Kwenta/kwenta-data#readme",
+  "dependencies": {
+    "ethereum-block-by-date": "^1.4.5",
+    "ethers": "^5.6.8"
+  }
+}

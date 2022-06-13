@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# data
+data/
+
+# npm
+node_modules/
+.env.local
