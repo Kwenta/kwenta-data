@@ -11,8 +11,6 @@ import nest_asyncio
 
 nest_asyncio.apply()
 
-# asyncio.set_event_loop(asyncio.new_event_loop())
-
 ## constants
 INFURA_KEY = os.getenv('INFURA_KEY')
 
