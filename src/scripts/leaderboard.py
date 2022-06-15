@@ -54,29 +54,35 @@ async def run_query(query, params, endpoint=FUTURES_ENDPOINT):
     return result
 
 
-# queries
-userMarginAccountsBlock = gql("""
-query marginAccounts($block_number: Int!) {
-  futuresMarginAccounts(
-    block: {
-      number: $block_number
-    }
-  ) {
-    id
-    timestamp
-    account
-    market
-    asset
-    margin
-    deposits
-    withdrawals
-  }  
-}
-""")
+async def run_recursive_query(query, params, accessor, endpoint=FUTURES_ENDPOINT):
+  transport = AIOHTTPTransport(url=endpoint)
 
+  async with Client(
+      transport=transport,
+      fetch_schema_from_transport=True,
+  ) as session:
+    done_fetching = False
+    all_results = []
+    while not done_fetching:
+      result = await session.execute(query, variable_values=params)
+      if len(result[accessor]) > 0:
+        all_results.extend(result[accessor])
+        params['last_id'] = all_results[-1]['id']
+      else:
+        done_fetching = True
+
+    return all_results
+
+# queries
 allMarginAccountsBlock = gql("""
-query marginAccounts($block_number: Int!) {
+query marginAccounts(
+  $block_number: Int!
+  $last_id: ID!
+) {
   futuresMarginAccounts(
+    where: {
+      id_gt: $last_id
+    }
     block: {
       number: $block_number
     }
@@ -95,16 +101,21 @@ query marginAccounts($block_number: Int!) {
 """)
 
 openPositionsBlock = gql("""
-query openPositions($block_number: Int!) {
+query openPositions(
+  $block_number: Int!
+  $last_id: ID!
+) {
   futuresPositions(
     where: {
       isOpen: true
+      id_gt: $last_id
     }
     block: {
       number: $block_number
     }
     first: 1000
   ) {
+    id
     account
     market
   }  
@@ -126,7 +137,8 @@ async def main():
   lb_results = {}
   for block in lb_blocks:
       params = {
-          'block_number': block
+          'block_number': block,
+          'last_id': ''
       }
 
       decimal_cols = [
@@ -135,8 +147,8 @@ async def main():
           'withdrawals'
       ]
 
-      margin_response = await run_query(allMarginAccountsBlock, params)
-      df_margin = pd.DataFrame(margin_response['futuresMarginAccounts'])
+      margin_response = await run_recursive_query(allMarginAccountsBlock, params, 'futuresMarginAccounts')
+      df_margin = pd.DataFrame(margin_response)
       print(f'{block} result size: {df_margin.shape[0]}')
       df_margin = clean_df(df_margin, decimal_cols)
 
@@ -152,85 +164,97 @@ async def main():
 
   ## Get unrealized pnl from contracts
   # get list of open positions
-  params = {
-      'block_number': lb_blocks[1]
-  }
+  upnl_results = {}
+  for block in lb_blocks:
+    params = {
+        'block_number': block,
+      'last_id': ''
+    }
 
-  open_position_response = await run_query(openPositionsBlock, params)
-  df_positions = pd.DataFrame(open_position_response['futuresPositions'])
+    open_position_response = await run_recursive_query(openPositionsBlock, params, 'futuresPositions')
+    df_positions = pd.DataFrame(open_position_response)
 
-  # use multicall to get current unrealized pnl and funding
-  pnlCalls = [
-      Call(
-          row['market'],
-          ['profitLoss(address)(int256)', row['account']],
-          [[row['account'], convertDecimals]]
-      ) for _, row in df_positions.iterrows()
-  ]
+    # use multicall to get current unrealized pnl and funding
+    pnlCalls = [
+        Call(
+            row['market'],
+            ['profitLoss(address)(int256)', row['account']],
+            [[row['account'], convertDecimals]]
+        ) for _, row in df_positions.iterrows()
+    ]
 
-  fundingCalls = [
-      Call(
-          row['market'],
-          ['accruedFunding(address)(int256)', row['account']],
-          [[row['account'], convertDecimals]]
-      ) for _, row in df_positions.iterrows()
-  ]
+    fundingCalls = [
+        Call(
+            row['market'],
+            ['accruedFunding(address)(int256)', row['account']],
+            [[row['account'], convertDecimals]]
+        ) for _, row in df_positions.iterrows()
+    ]
 
-  pnlMulti = Multicall(
-      pnlCalls,
-      block_id=lb_blocks[1],
-      _w3=w3
-  )
+    pnlMulti = Multicall(
+        pnlCalls,
+        block_id=block,
+        _w3=w3
+    )
 
-  fundingMulti = Multicall(
-      fundingCalls,
-      block_id=lb_blocks[1],
-      _w3=w3
-  )
+    fundingMulti = Multicall(
+        fundingCalls,
+        block_id=block,
+        _w3=w3
+    )
 
-  pnlResult = pnlMulti()
-  fundingResult = fundingMulti()
+    pnlResult = pnlMulti()
+    fundingResult = fundingMulti()
 
-  # clean the pnl
-  pnlResult = [(k, v) for k, v in pnlResult.items()]
-  fundingResult = [(k, v) for k, v in fundingResult.items()]
+    # clean the pnl
+    pnlResult = [(k, v) for k, v in pnlResult.items()]
+    fundingResult = [(k, v) for k, v in fundingResult.items()]
 
-  df_pnl = pd.DataFrame.from_records(pnlResult, columns=['account', 'upnl'])
-  df_funding = pd.DataFrame.from_records(fundingResult, columns=['account', 'funding'])
-  df_pnl = df_pnl.merge(df_funding, on='account')
+    df_pnl = pd.DataFrame.from_records(pnlResult, columns=['account', 'upnl'])
+    df_funding = pd.DataFrame.from_records(fundingResult, columns=['account', 'funding'])
+    df_pnl = df_pnl.merge(df_funding, on='account')
 
+    upnl_results[block] = df_pnl
 
   ## Calculate the leaderboard
   # get the start and end data
-  start_df = lb_results[lb_blocks[0]]
-  end_df = lb_results[lb_blocks[1]]
+  start_lb_df = lb_results[lb_blocks[0]]
+  end_lb_df = lb_results[lb_blocks[1]]
+
+  start_pnl_df = upnl_results[lb_blocks[0]]
+  end_pnl_df = upnl_results[lb_blocks[1]]
 
   # merge together
-  df_lb = start_df.merge(
-    end_df,
+  df_lb = start_lb_df.merge(
+    end_lb_df,
+    on='account',
+    how='outer',
+    suffixes=('_start', '_end')
+  )
+
+  df_upnl = start_pnl_df.merge(
+      end_pnl_df,
     on='account',
     how='outer',
     suffixes=('_start', '_end')
   )
 
   df_lb = df_lb.merge(
-    df_pnl,
+    df_upnl,
     how='outer',
     on='account'
-  )
+  ).fillna(0)
 
   # calculated fields
   df_lb['margin_change'] = df_lb['margin_end'] - df_lb['margin_start']
   df_lb['deposits_change'] = df_lb['deposits_end'] - df_lb['deposits_start']
   df_lb['withdrawals_change'] = df_lb['withdrawals_end'] - df_lb['withdrawals_start']
-  
-  # fix missing data
-  df_lb['upnl'] = df_lb['upnl'].fillna(0)
-  df_lb['funding'] = df_lb['funding'].fillna(0)
+  df_lb['upnl_change'] = df_lb['upnl_end'] - df_lb['upnl_start']
+  df_lb['funding_change'] = df_lb['funding_end'] - df_lb['funding_start']
 
-  df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits_change'] + df_lb['withdrawals_change'] + df_lb['upnl'] + df_lb['funding']
+
+  df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits_change'] + df_lb['withdrawals_change'] + df_lb['upnl_change'] + df_lb['funding_change']
   df_lb['pnl_pct'] = df_lb['pnl'] / (df_lb['margin_start'] + df_lb['deposits_change']).apply(lambda x: max(500, x))
-
 
   df_lb.sort_values('pnl_pct', ascending=False)[[
       'account',
