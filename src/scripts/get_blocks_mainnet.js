@@ -1,11 +1,9 @@
-const EthDater = require('ethereum-block-by-date');
-const { ethers } = require('ethers');
-var fs = require('fs');
+import EthDater from 'ethereum-block-by-date';
+import { ethers } from 'ethers';
+import fs from 'fs';
 
 // set some constants
-// const NETWORK = 'optimism-mainnet'; // mainnet
-const NETWORK = 'optimism-kovan'; // testnet
-
+const NETWORK = 'optimism-mainnet'; // mainnet
 
 // set up the objects
 const provider = new ethers.providers.JsonRpcProvider(
@@ -29,7 +27,7 @@ const dater = new EthDater(provider);
     
     console.log('Writing blocks...');
     fs.writeFile(
-        './data/blocks.json',
+        './data/blocks_mainnet.json',
         JSON.stringify(blocks),
         (err) => {
             if(err) throw err;
