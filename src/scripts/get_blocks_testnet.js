@@ -1,5 +1,6 @@
 import EthDater from 'ethereum-block-by-date';
 import { ethers } from 'ethers';
+import 'dotenv/config';
 import fs from 'fs';
 
 // set some constants
@@ -18,7 +19,7 @@ const dater = new EthDater(provider);
     let blocks = await dater.getEvery(
         'weeks',
         '2022-01-01T12:00:00Z',
-        '2022-06-13T12:00:00Z',
+        '2022-07-08T12:00:00Z',
         1,
         true,
         false
