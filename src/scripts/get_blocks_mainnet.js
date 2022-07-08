@@ -1,11 +1,10 @@
-const EthDater = require('ethereum-block-by-date');
-const { ethers } = require('ethers');
-var fs = require('fs');
+import EthDater from 'ethereum-block-by-date';
+import { ethers } from 'ethers';
+import 'dotenv/config';
+import fs from 'fs';
 
 // set some constants
-// const NETWORK = 'optimism-mainnet'; // mainnet
-const NETWORK = 'optimism-kovan'; // testnet
-
+const NETWORK = 'optimism-mainnet'; // mainnet
 
 // set up the objects
 const provider = new ethers.providers.JsonRpcProvider(
@@ -20,7 +19,7 @@ const dater = new EthDater(provider);
     let blocks = await dater.getEvery(
         'weeks',
         '2022-01-01T12:00:00Z',
-        '2022-06-13T12:00:00Z',
+        '2022-07-08T12:00:00Z',
         1,
         true,
         false
@@ -29,7 +28,7 @@ const dater = new EthDater(provider);
     
     console.log('Writing blocks...');
     fs.writeFile(
-        './data/blocks.json',
+        './data/blocks_mainnet.json',
         JSON.stringify(blocks),
         (err) => {
             if(err) throw err;

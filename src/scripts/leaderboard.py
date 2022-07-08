@@ -262,8 +262,10 @@ async def main():
       'pnl_pct'
   ]]
 
-  df_lb.sort_values('pnl_pct', ascending=False).to_csv(
-      'data/pnl_result.csv', index=False)
+  df_lb.sort_values('pnl_pct', ascending=False).to_json(
+      'data/pnl_result.json',
+      orient='records'
+  )
 
 if __name__ == '__main__':
   asyncio.run(main())
