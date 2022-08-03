@@ -333,8 +333,13 @@ async def main():
   df_write = df_lb[write_cols].sort_values('pnl_pct', ascending=False)
   df_write.columns = [col.replace('_change', '') for col in df_write.columns]
 
+  # make sure the directory exists
+  outdir = 'data/competition'
+  if not os.path.exists(outdir):
+    os.mkdir(outdir)
+
   df_write.to_json(
-      'data/pnl_result.json',
+      'data/competition/leaderboard_latest.json',
       orient='records'
   )
 
