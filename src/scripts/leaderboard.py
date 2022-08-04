@@ -78,6 +78,15 @@ async def run_recursive_query(query, params, accessor, endpoint=FUTURES_ENDPOINT
 
     return all_results
 
+def get_trading_tier(volume):
+  if volume > 250000:
+    return 'gold'
+  elif volume > 50000:
+    return 'silver'
+  else:
+    return 'bronze'
+
+
 # queries
 allMarginAccountsBlock = gql("""
 query marginAccounts(
@@ -153,11 +162,7 @@ query accountStats(
 
 async def main():
   ## Query all users between two blocks
-  # lb_blocks = [
-  #     2557167,
-  #     3860759
-  # ]
-
+  # TODO: get blocks from files
   lb_blocks = [
       8720778,
       11236395
@@ -319,10 +324,16 @@ async def main():
   df_lb['pnl_pct'] = df_lb['pnl'] / \
       (df_lb['margin_start'] + df_lb['deposits_change']
        ).apply(lambda x: max(500, x))
+  
+  # add tier and rank
+  df_lb['tier'] = df_lb['volume_change'].apply(get_trading_tier)
+  df_lb['rank'] = df_lb.groupby('tier')['pnl_pct'].rank('dense', ascending=False)
 
-  # write the data
+  # export the data
   write_cols = [
     'account',
+    'tier',
+    'rank',
     'volume_change',
     'trades_change',
     'liquidations_change',
@@ -330,7 +341,7 @@ async def main():
     'pnl_pct'
   ]
 
-  df_write = df_lb[write_cols].sort_values('pnl_pct', ascending=False)
+  df_write = df_lb[df_lb['trades_change'] > 0][write_cols].sort_values(['tier', 'pnl_pct'], ascending=False)
   df_write.columns = [col.replace('_change', '') for col in df_write.columns]
 
   # make sure the directory exists
