@@ -16,10 +16,12 @@ const dater = new EthDater(provider);
 // get the blocks and log to console
 (async () => {
     console.log('Getting blocks...');
+    const today = new Date();
+
     let blocks = await dater.getEvery(
-        'weeks',
-        '2022-01-01T12:00:00Z',
-        '2022-07-08T12:00:00Z',
+        'days',
+        '2022-07-01T00:00:00Z',
+        today.toISOString(),
         1,
         true,
         false

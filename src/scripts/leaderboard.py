@@ -1,7 +1,7 @@
 import os
 import asyncio
 import pandas as pd
-import json
+from datetime import datetime, timezone
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from decimal import Decimal
@@ -10,6 +10,10 @@ from web3 import Web3
 import nest_asyncio
 
 nest_asyncio.apply()
+
+## input parameters
+DATE_COMPETITION_START = '2022-08-01'
+DATE_COMPETITION_END = '2022-08-12'
 
 ## constants
 INFURA_KEY = os.getenv('INFURA_KEY')
@@ -159,13 +163,18 @@ query accountStats(
 }
 """)
 
-
 async def main():
   ## Query all users between two blocks
-  # TODO: get blocks from files
+  blocks = pd.read_json('data/blocks_mainnet.json')
+  
+  ts_start = datetime.strptime(DATE_COMPETITION_START, '%Y-%m-%d').replace(tzinfo=timezone.utc).timestamp() * 1000
+  ts_end = datetime.strptime(DATE_COMPETITION_END, '%Y-%m-%d').replace(tzinfo=timezone.utc).timestamp() * 1000
+
+  blocks = blocks[(blocks['ts'] <= ts_end) & (blocks['ts'] >= ts_start)]
+
   lb_blocks = [
-      8720778,
-      11236395
+      int(blocks.head(1).iloc[0]['block']),
+      int(blocks.tail(1).iloc[-1]['block'])
   ]
 
   lb_results = {}
@@ -350,7 +359,7 @@ async def main():
     os.mkdir(outdir)
 
   df_write.to_json(
-      'data/competition/leaderboard_latest.json',
+      f'{outdir}/leaderboard_latest.json',
       orient='records'
   )
 
