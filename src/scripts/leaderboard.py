@@ -19,7 +19,7 @@ FUTURES_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/kwenta/optimism-main
 RPC_ENDPOINT = f'https://optimism-mainnet.infura.io/v3/{INFURA_KEY}'
 
 # testnet
-# FUTURES_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/kwenta/optimism-kovan-main' 
+# FUTURES_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/kwenta/optimism-kovan-main'
 # RPC_ENDPOINT = f'https://optimism-kovan.infura.io/v3/{INFURA_KEY}'
 
 # get a web3 provider
@@ -29,16 +29,21 @@ w3 = Web3(Web3.HTTPProvider(RPC_ENDPOINT))
 def convertDecimals(value):
   return Decimal(value) / Decimal(10**18)
 
-def just_return(value):
-  return value
 
-def clean_df(df, decimal_cols):
+def clean_df(df, decimal_cols, number_cols=[]):
   for col in decimal_cols:
     if col in df.columns:
       df[col] = df[col].apply(convertDecimals)
     else:
       print(f"{col} not in DataFrame")
+
+  for col in number_cols:
+    if col in df.columns:
+      df[col] = df[col].astype(float)
+    else:
+      print(f"{col} not in DataFrame")
   return df
+
 
 async def run_query(query, params, endpoint=FUTURES_ENDPOINT):
   transport = AIOHTTPTransport(url=endpoint)
@@ -72,6 +77,15 @@ async def run_recursive_query(query, params, accessor, endpoint=FUTURES_ENDPOINT
         done_fetching = True
 
     return all_results
+
+def get_trading_tier(volume):
+  if volume > 250000:
+    return 'gold'
+  elif volume > 50000:
+    return 'silver'
+  else:
+    return 'bronze'
+
 
 # queries
 allMarginAccountsBlock = gql("""
@@ -122,45 +136,92 @@ query openPositions(
 }
 """)
 
+accountStatsBlock = gql("""
+query accountStats(
+  $block_number: Int!
+  $last_id: ID!
+) {
+  futuresStats(
+    where: {
+      id_gt: $last_id
+    }
+    block: {
+      number: $block_number
+    }
+    first: 1000
+  ) {
+    id
+    account
+    liquidations
+    totalTrades
+    totalVolume
+  }
+}
+""")
+
+
 async def main():
   ## Query all users between two blocks
-  # lb_blocks = [
-  #     2557167,
-  #     3860759
-  # ]
-
+  # TODO: get blocks from files
   lb_blocks = [
-    8720778,
-    11236395
+      8720778,
+      11236395
   ]
 
   lb_results = {}
   for block in lb_blocks:
-      params = {
+      # get margin data
+      margin_params = {
           'block_number': block,
           'last_id': ''
       }
 
-      decimal_cols = [
+      margin_decimal_cols = [
           'margin',
           'deposits',
           'withdrawals'
       ]
 
-      margin_response = await run_recursive_query(allMarginAccountsBlock, params, 'futuresMarginAccounts')
+      margin_response = await run_recursive_query(allMarginAccountsBlock, margin_params, 'futuresMarginAccounts')
       df_margin = pd.DataFrame(margin_response)
-      print(f'{block} result size: {df_margin.shape[0]}')
-      df_margin = clean_df(df_margin, decimal_cols)
+      print(f'{block} margin result size: {df_margin.shape[0]}')
+      df_margin = clean_df(df_margin, margin_decimal_cols)
 
-      # summarize the data by account
+      # get stat data
+      stat_params = {
+          'block_number': block,
+          'last_id': ''
+      }
+
+      stat_decimal_cols = [
+          'totalVolume'
+      ]
+
+      stat_number_cols = [
+          'totalTrades',
+          'liquidations'
+      ]
+
+      stats_response = await run_recursive_query(accountStatsBlock, stat_params, 'futuresStats')
+      df_stats = pd.DataFrame(stats_response)
+      print(f'{block} stats result size: {df_stats.shape[0]}')
+      df_stats = clean_df(df_stats, stat_decimal_cols, stat_number_cols)
+
+      # summarize margin data by account
       df_margin = df_margin.groupby('account')[[
           'margin',
           'deposits',
           'withdrawals'
       ]].sum().reset_index()
 
-      lb_results[block] = df_margin
+      # merge with stat data
+      df_stats = df_stats.merge(
+          df_margin,
+          how='left',
+          on='account'
+      ).fillna(0)
 
+      lb_results[block] = df_stats
 
   ## Get unrealized pnl from contracts
   # get list of open positions
@@ -168,7 +229,7 @@ async def main():
   for block in lb_blocks:
     params = {
         'block_number': block,
-      'last_id': ''
+        'last_id': ''
     }
 
     open_position_response = await run_recursive_query(openPositionsBlock, params, 'futuresPositions')
@@ -211,7 +272,8 @@ async def main():
     fundingResult = [(k, v) for k, v in fundingResult.items()]
 
     df_pnl = pd.DataFrame.from_records(pnlResult, columns=['account', 'upnl'])
-    df_funding = pd.DataFrame.from_records(fundingResult, columns=['account', 'funding'])
+    df_funding = pd.DataFrame.from_records(
+        fundingResult, columns=['account', 'funding'])
     df_pnl = df_pnl.merge(df_funding, on='account')
 
     upnl_results[block] = df_pnl
@@ -226,44 +288,69 @@ async def main():
 
   # merge together
   df_lb = start_lb_df.merge(
-    end_lb_df,
-    on='account',
-    how='outer',
-    suffixes=('_start', '_end')
+      end_lb_df,
+      on='account',
+      how='outer',
+      suffixes=('_start', '_end')
   )
 
   df_upnl = start_pnl_df.merge(
       end_pnl_df,
-    on='account',
-    how='outer',
-    suffixes=('_start', '_end')
+      on='account',
+      how='outer',
+      suffixes=('_start', '_end')
   )
 
   df_lb = df_lb.merge(
-    df_upnl,
-    how='outer',
-    on='account'
+      df_upnl,
+      how='outer',
+      on='account'
   ).fillna(0)
 
   # calculated fields
+  df_lb['volume_change'] = df_lb['totalVolume_end'] - df_lb['totalVolume_start']
+  df_lb['liquidations_change'] = df_lb['liquidations_end'] - df_lb['liquidations_start']
+  df_lb['trades_change'] = df_lb['totalTrades_end'] - df_lb['totalTrades_start']
   df_lb['margin_change'] = df_lb['margin_end'] - df_lb['margin_start']
   df_lb['deposits_change'] = df_lb['deposits_end'] - df_lb['deposits_start']
-  df_lb['withdrawals_change'] = df_lb['withdrawals_end'] - df_lb['withdrawals_start']
+  df_lb['withdrawals_change'] = df_lb['withdrawals_end'] - \
+      df_lb['withdrawals_start']
   df_lb['upnl_change'] = df_lb['upnl_end'] - df_lb['upnl_start']
   df_lb['funding_change'] = df_lb['funding_end'] - df_lb['funding_start']
 
+  df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits_change'] + \
+      df_lb['withdrawals_change'] + \
+      df_lb['upnl_change'] + df_lb['funding_change']
+  df_lb['pnl_pct'] = df_lb['pnl'] / \
+      (df_lb['margin_start'] + df_lb['deposits_change']
+       ).apply(lambda x: max(500, x))
+  
+  # add tier and rank
+  df_lb['tier'] = df_lb['volume_change'].apply(get_trading_tier)
+  df_lb['rank'] = df_lb.groupby('tier')['pnl_pct'].rank('dense', ascending=False)
 
-  df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits_change'] + df_lb['withdrawals_change'] + df_lb['upnl_change'] + df_lb['funding_change']
-  df_lb['pnl_pct'] = df_lb['pnl'] / (df_lb['margin_start'] + df_lb['deposits_change']).apply(lambda x: max(500, x))
+  # export the data
+  write_cols = [
+    'account',
+    'tier',
+    'rank',
+    'volume_change',
+    'trades_change',
+    'liquidations_change',
+    'pnl',
+    'pnl_pct'
+  ]
 
-  df_lb.sort_values('pnl_pct', ascending=False)[[
-      'account',
-      'pnl',
-      'pnl_pct'
-  ]]
+  df_write = df_lb[df_lb['trades_change'] > 0][write_cols].sort_values(['tier', 'pnl_pct'], ascending=False)
+  df_write.columns = [col.replace('_change', '') for col in df_write.columns]
 
-  df_lb.sort_values('pnl_pct', ascending=False).to_json(
-      'data/pnl_result.json',
+  # make sure the directory exists
+  outdir = 'data/competition'
+  if not os.path.exists(outdir):
+    os.mkdir(outdir)
+
+  df_write.to_json(
+      'data/competition/leaderboard_latest.json',
       orient='records'
   )
 
