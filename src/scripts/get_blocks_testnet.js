@@ -26,11 +26,18 @@ const dater = new EthDater(provider);
         true,
         false
     );
-    console.log('Blocks: ', blocks);
+
+    console.log(`Blocks received: ${blocks.length}`);
     
     console.log('Writing blocks...');
+    var dir = './data';
+
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
     fs.writeFile(
-        './data/blocks_testnet.json',
+        `${dir}/blocks_testnet.json`,
         JSON.stringify(blocks),
         (err) => {
             if(err) throw err;

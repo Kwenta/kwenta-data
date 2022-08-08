@@ -36,12 +36,17 @@ const dater = new EthDater(provider);
             ts: ts.getTime()
         }
     })
-
-    console.log('Blocks: ', blocks);
+    console.log(`Blocks received: ${blocks.length}`);
     
     console.log('Writing blocks...');
+    var dir = './data';
+
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
     fs.writeFile(
-        './data/blocks_mainnet.json',
+        `${dir}/blocks_mainnet.json`,
         JSON.stringify(blocks),
         (err) => {
             if(err) throw err;
