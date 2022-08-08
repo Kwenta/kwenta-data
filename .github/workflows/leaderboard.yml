@@ -23,5 +23,5 @@ jobs:
       - run: npm i
       - run: pip install -r requirements.txt
       - run: npm run blocks
-          - env:
-            INFURA_KEY: ${{ secrets.INFURA_KEY }}
+        env:
+          INFURA_KEY: ${{ secrets.INFURA_KEY }}
