@@ -10,9 +10,6 @@ const globSourceOptions = {
 const DEFAULT_FLEEK_CONFIG = {
     apiKey: `${process.env.FLEEK_API_KEY}`,
     apiSecret: `${process.env.FLEEK_API_SECRET}`,
-    // httpUploadProgressCallback: (event) => {
-    //     console.log(Math.round(event.loaded / event.total * 100) + '% done');
-    // }
 }
 
 // upload the files

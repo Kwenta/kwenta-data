@@ -16,19 +16,28 @@ const dater = new EthDater(provider);
 // get the blocks and log to console
 (async () => {
     console.log('Getting blocks...');
+    const today = new Date();
+
     let blocks = await dater.getEvery(
-        'weeks',
-        '2022-01-01T12:00:00Z',
-        '2022-07-08T12:00:00Z',
+        'days',
+        '2022-07-01T00:00:00Z',
+        today.toISOString(),
         1,
         true,
         false
     );
-    console.log('Blocks: ', blocks);
+
+    console.log(`Blocks received: ${blocks.length}`);
     
     console.log('Writing blocks...');
+    var dir = './data';
+
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
     fs.writeFile(
-        './data/blocks_testnet.json',
+        `${dir}/blocks_testnet.json`,
         JSON.stringify(blocks),
         (err) => {
             if(err) throw err;
