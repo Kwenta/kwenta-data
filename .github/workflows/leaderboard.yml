@@ -25,3 +25,10 @@ jobs:
       - run: npm run blocks
         env:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
+      - run: python src/scripts/leaderboard.py
+        env:
+          INFURA_KEY: ${{ secrets.INFURA_KEY }}
+      - run: npm run upload
+        env:
+          FLEEK_API_KEY: ${{ secrets.FLEEK_API_KEY }}
+          FLEEK_API_SECRET: ${{ secrets.FLEEK_API_SECRET }}
