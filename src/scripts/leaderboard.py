@@ -12,7 +12,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 ## input parameters
-DATE_COMPETITION_START = '2022-08-08'
+DATE_COMPETITION_START = '2022-08-07'
 DATE_COMPETITION_END = '2022-08-12'
 
 ## constants
@@ -334,6 +334,9 @@ async def main():
       (df_lb['margin_start'] + df_lb['deposits_change']
        ).apply(lambda x: max(500, x))
   
+  # filter people with no volume
+  df_lb = df_lb[df_lb['trades_change'] > 0]
+
   # add tier and rank
   df_lb['tier'] = df_lb['volume_change'].apply(get_trading_tier)
   df_lb['rank'] = df_lb.groupby('tier')['pnl_pct'].rank('dense', ascending=False)
@@ -350,7 +353,7 @@ async def main():
     'pnl_pct'
   ]
 
-  df_write = df_lb[df_lb['trades_change'] > 0][write_cols].sort_values(['tier', 'pnl_pct'], ascending=False)
+  df_write = df_lb[write_cols].sort_values(['tier', 'pnl_pct'], ascending=False)
   df_write.columns = [col.replace('_change', '') for col in df_write.columns]
 
   # make sure the directory exists
