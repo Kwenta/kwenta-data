@@ -12,7 +12,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 ## input parameters
-DATE_COMPETITION_START = '2022-08-01'
+DATE_COMPETITION_START = '2022-08-08'
 DATE_COMPETITION_END = '2022-08-12'
 
 ## constants
