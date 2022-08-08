@@ -13,6 +13,10 @@
     "url": "https://github.com/Kwenta/kwenta-data/issues"
   },
   "homepage": "https://github.com/Kwenta/kwenta-data#readme",
+  "scripts": {
+    "blocks": "node src/scripts/get_blocks_mainnet.js",
+    "upload": "node src/scripts/ipfs_upload.js"
+  },
   "dependencies": {
     "@fleekhq/fleek-storage-js": "^1.0.21",
     "dotenv": "^16.0.1",
