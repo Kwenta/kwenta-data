@@ -1,7 +1,6 @@
 name: leaderboard export
 
 on: 
-  push:
   schedule:
     - cron:  '* 0 * * *'
 
