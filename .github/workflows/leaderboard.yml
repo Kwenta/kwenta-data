@@ -2,7 +2,7 @@ name: leaderboard export
 
 on: 
   schedule:
-    - cron:  '* 0 * * *'
+    - cron:  '0 0 * * *'
 
 jobs:
   export_leaderboard:
