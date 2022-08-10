@@ -12,8 +12,8 @@ import nest_asyncio
 nest_asyncio.apply()
 
 ## input parameters
-DATE_COMPETITION_START = '2022-08-07'
-DATE_COMPETITION_END = '2022-08-12'
+DATE_COMPETITION_START = '2022-08-16'
+DATE_COMPETITION_END = '2022-08-23'
 
 ## constants
 INFURA_KEY = os.getenv('INFURA_KEY')

@@ -19,10 +19,10 @@ const dater = new EthDater(provider);
     const today = new Date();
 
     let blocks = await dater.getEvery(
-        'days',
-        '2022-07-01T00:00:00Z',
+        'hours',
+        '2022-08-01T00:00:00Z',
         today.toISOString(),
-        1,
+        3,
         true,
         false
     );
