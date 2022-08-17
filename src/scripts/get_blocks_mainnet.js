@@ -70,7 +70,7 @@ const dater = new EthDater(provider);
     
     console.log('Writing blocks...');
     fs.writeFile(
-        `${DIR_NAME}/${FILE_NAME}`,
+        `./${DIR_NAME}/${FILE_NAME}`,
         JSON.stringify(blocks),
         (err) => {
             if(err) throw err;
