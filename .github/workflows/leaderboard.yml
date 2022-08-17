@@ -24,6 +24,7 @@ jobs:
       - run: npm run blocks
         env:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
+          FLEEK_BASE_URL: ${{ secrets.FLEEK_BASE_URL }}
       - run: python src/scripts/leaderboard.py
         env:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
