@@ -1,9 +1,5 @@
 name: leaderboard export
 
-on: 
-  schedule:
-    - cron:  '5 */3 * * *'
-
 jobs:
   export_leaderboard:
     runs-on: ubuntu-latest
