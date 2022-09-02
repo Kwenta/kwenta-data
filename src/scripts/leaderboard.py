@@ -331,7 +331,7 @@ async def main():
       df_lb['withdrawals_change'] + \
       df_lb['upnl_change'] + df_lb['funding_change']
   df_lb['pnl_pct'] = df_lb['pnl'] / \
-      (df_lb['margin_start'] + df_lb['deposits_change']
+      (df_lb['margin_start'] + df_lb['upnl_start'] + df_lb['funding_start'] + df_lb['deposits_change']
        ).apply(lambda x: max(500, x))
   
   # filter people with no volume
