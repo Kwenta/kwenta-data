@@ -1,4 +1,9 @@
-name: leaderboard export
+name: quest export
+
+on: 
+  schedule:
+    - cron:  '0 13 * * *'
+
 
 jobs:
   export_leaderboard:
@@ -17,11 +22,7 @@ jobs:
           cache: 'pip'
       - run: npm i
       - run: pip install -r requirements.txt
-      - run: npm run blocks
-        env:
-          INFURA_KEY: ${{ secrets.INFURA_KEY }}
-          FLEEK_BASE_URL: ${{ secrets.FLEEK_BASE_URL }}
-      - run: python src/scripts/leaderboard.py
+      - run: python src/scripts/quest.py
         env:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
       - run: npm run upload
