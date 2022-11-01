@@ -12,7 +12,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 ## input parameters
-DATE_COMPETITION_START = '2022-11-09'
+DATE_COMPETITION_START = '2022-10-31'
 DATE_COMPETITION_END = '2022-11-16'
 
 ## constants
@@ -325,7 +325,7 @@ async def main():
 
     print(f'FETCHING: open position funding: block {block}')
     fundingResult = fundingMulti()
-    print(f'RECEIVED: open positions for block {block}: {len(fundingResult)} accounts')
+    print(f'RECEIVED: open position funding: block {block}: {len(fundingResult)} accounts')
 
     # clean the pnl
     pnlResult = [(k.split(',')[0], k.split(',')[1], v) for k, v in pnlResult.items()]
@@ -415,7 +415,7 @@ async def main():
   df_write.columns = [col.replace('_change', '') for col in df_write.columns]
 
   # make sure the directory exists
-  outdir = 'data/competition/crossmargin'
+  outdir = 'data/crossmargin_competition_1'
   if not os.path.exists(outdir):
     os.mkdir(outdir)
 
