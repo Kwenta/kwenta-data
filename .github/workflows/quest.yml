@@ -22,7 +22,7 @@ jobs:
           cache: 'pip'
       - run: npm i
       - run: pip install -r requirements.txt
-      - run: python src/scripts/quest.py
+      - run: python src/scripts/quest_crossmargin.py
         env:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
       - run: npm run upload
