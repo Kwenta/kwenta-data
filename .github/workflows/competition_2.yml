@@ -1,4 +1,4 @@
-name: competition 1 export
+name: competition 2 export
 
 on: 
   schedule:
@@ -21,6 +21,10 @@ jobs:
           cache: 'pip'
       - run: npm i
       - run: pip install -r requirements.txt
+      - run: npm run blocks
+        env:
+          INFURA_KEY: ${{ secrets.INFURA_KEY }}
+          FLEEK_BASE_URL: ${{ secrets.FLEEK_BASE_URL }}
       - run: python src/scripts/crossmargin_competition_2.py
         env:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
