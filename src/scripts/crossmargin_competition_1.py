@@ -31,8 +31,10 @@ w3 = Web3(Web3.HTTPProvider(RPC_ENDPOINT))
 
 # functions
 def convertDecimals(value):
-  return Decimal(value) / Decimal(10**18)
-
+  if value:
+    return Decimal(value) / Decimal(10**18)
+  else:
+    return value
 
 def clean_df(df, decimal_cols, number_cols=[]):
   for col in decimal_cols:
@@ -130,6 +132,27 @@ query marginAccounts(
     margin
     deposits
     withdrawals
+  }  
+}
+""")
+
+crossMarginTransfers = gql("""
+query crossMarginAccountTransfers(
+  $min_timestamp: BigInt!
+  $max_timestamp: BigInt!
+  $last_id: ID!
+) {
+  crossMarginAccountTransfers(
+    where: {
+      id_gt: $last_id
+      timestamp_gte: $min_timestamp
+      timestamp_lte: $max_timestamp
+    }
+    first: 1000
+  ) {
+    id
+    abstractAccount
+    size
   }  
 }
 """)
@@ -283,13 +306,12 @@ async def main():
         'last_id': ''
     }
 
-
     print(f'FETCHING: open positions: block {block}')
     open_position_response = await run_recursive_query(openPositionsBlock, params, 'futuresPositions')
     df_positions = pd.DataFrame(open_position_response)
     print(f'RECEIVED: open positions: block {block}: {df_positions.shape[0]} accounts')
 
-    # use multicall to get current unrealized pnl and funding
+    # use multicall to get unrealized pnl and funding
     pnlCalls = [
         Call(
             row['market'],
@@ -318,7 +340,6 @@ async def main():
         _w3=w3
     )
 
-
     print(f'FETCHING: open position pnl: block {block}')
     pnlResult = pnlMulti()
     print(f'RECEIVED: open position pnl: block {block}: {len(pnlResult)} accounts')
@@ -334,7 +355,14 @@ async def main():
     df_pnl = pd.DataFrame.from_records(pnlResult, columns=['abstractAccount', 'market', 'upnl']).groupby('abstractAccount')[['upnl']].sum().reset_index()
     df_funding = pd.DataFrame.from_records(fundingResult, columns=['abstractAccount', 'market', 'funding']).groupby('abstractAccount')[['funding']].sum().reset_index()
 
-    df_pnl = df_pnl.merge(df_funding, on='abstractAccount').merge(df_cm_account, left_on='abstractAccount', right_on='crossMarginAccount')
+    df_pnl = df_pnl.merge(
+      df_funding,
+      on='abstractAccount'
+    ).merge(
+      df_cm_account,
+      left_on='abstractAccount',
+      right_on='crossMarginAccount'
+    )
 
     df_pnl = df_pnl[[
       'accountOwner',
@@ -345,6 +373,31 @@ async def main():
 
     upnl_results[block] = df_pnl
 
+  # get transfer data
+  transfer_params = {
+      'last_id': '',
+      'min_timestamp': f'{int(ts_start/1000)}',
+      'max_timestamp': f'{int(ts_end/1000)}'
+  }
+
+  transfer_decimal_cols = ['size']
+
+  print(f'FETCHING: margin transfers')
+  transfer_response = await run_recursive_query(crossMarginTransfers, transfer_params, 'crossMarginAccountTransfers')
+  df_transfer = pd.DataFrame(transfer_response)
+  print(f'RECEIVED: margin transfers: {df_transfer.shape[0]} transfers')
+  df_transfer = clean_df(df_transfer, transfer_decimal_cols)
+  df_transfer['deposits'] = df_transfer['size'].apply(lambda x: x if x >= 0 else 0)
+  df_transfer['withdrawals'] = df_transfer['size'].apply(lambda x: x*-1 if x < 0 else 0)
+  df_transfer = df_transfer.drop('id', axis=1).groupby('abstractAccount').sum().reset_index()
+
+  df_transfer = df_transfer.merge(
+    df_cm_account,
+    left_on='abstractAccount',
+    right_on='crossMarginAccount'
+  )
+  df_transfer = df_transfer.drop(['abstractAccount', 'crossMarginAccount'], axis=1).groupby(['accountOwner']).sum().reset_index()
+
   ## Calculate the leaderboard
   # get the start and end data
   start_lb_df = lb_results[lb_blocks[0]]
@@ -353,14 +406,14 @@ async def main():
   start_pnl_df = upnl_results[lb_blocks[0]]
   end_pnl_df = upnl_results[lb_blocks[1]]
 
-  # merge together
+  # merge everything together
   df_lb = start_lb_df.merge(
       end_lb_df,
       on='account',
       how='outer',
       suffixes=('_start', '_end')
   )
-
+  
   df_upnl = start_pnl_df.merge(
       end_pnl_df,
       on='account',
@@ -374,22 +427,84 @@ async def main():
       on='account'
   ).fillna(0)
 
+  df_lb = df_lb.merge(
+      df_transfer,
+      how='left',
+      left_on='account',
+      right_on='accountOwner'
+  ).fillna(0)
+
+  # request free margin for the necessary accounts and merge
+  df_active_cm = df_lb.loc[((df_lb['crossMarginVolume_end'] - df_lb['crossMarginVolume_start']) > 0), :].merge(
+    df_cm_account,
+    left_on='account',
+    right_on='accountOwner'
+  )['crossMarginAccount'].unique()
+
+  freemargin_results = {}
+  for block in lb_blocks:
+    freeMarginCalls = [
+        Call(
+            account,
+            ['freeMargin()(int256)'],
+            [[f"{account}", convertDecimals]]
+        ) for account in df_active_cm
+    ]
+
+    freeMarginMulti = Multicall(
+        freeMarginCalls,
+        block_id=block,
+        _w3=w3
+    )
+    print(f'FETCHING: free margin: block {block}')
+    freeMarginResult = freeMarginMulti()
+    print(f'RECEIVED: free margin: block {block}: {len(freeMarginResult)} accounts')
+    freeMarginResult = [(k, v) for k, v in freeMarginResult.items()]
+    df_freemargin = pd.DataFrame.from_records(freeMarginResult, columns=['abstractAccount', 'freeMargin'])
+
+    df_freemargin = df_freemargin.merge(
+      df_cm_account,
+      left_on='abstractAccount',
+      right_on='crossMarginAccount'
+    )
+    df_freemargin = df_freemargin.drop(['abstractAccount', 'crossMarginAccount'], axis=1).groupby(['accountOwner']).sum().reset_index()
+
+    freemargin_results[block] = df_freemargin
+  
+  # merge freemargin
+  start_fm_df = freemargin_results[lb_blocks[0]]
+  end_fm_df = freemargin_results[lb_blocks[1]]
+
+  df_fm = start_fm_df.merge(
+      end_fm_df,
+      on='accountOwner',
+      how='outer',
+      suffixes=('_start', '_end')
+  ).fillna(0)
+
+  # merge into leaderboard
+  df_lb = df_lb.merge(
+    df_fm,
+    how='left',
+    left_on='account',
+    right_on='accountOwner'
+  ).fillna(0)
+
   # calculated fields
   df_lb['volume_change'] = df_lb['crossMarginVolume_end'] - df_lb['crossMarginVolume_start']
   df_lb['liquidations_change'] = df_lb['liquidations_end'] - df_lb['liquidations_start']
   df_lb['trades_change'] = df_lb['totalTrades_end'] - df_lb['totalTrades_start']
-  df_lb['margin_change'] = df_lb['margin_end'] - df_lb['margin_start']
-  df_lb['deposits_change'] = df_lb['deposits_end'] - df_lb['deposits_start']
+  df_lb['margin_change'] = (df_lb['freeMargin_end'] + df_lb['margin_end']) - (df_lb['freeMargin_start'] + df_lb['margin_start'])
   df_lb['withdrawals_change'] = df_lb['withdrawals_end'] - \
       df_lb['withdrawals_start']
   df_lb['upnl_change'] = df_lb['upnl_end'] - df_lb['upnl_start']
   df_lb['funding_change'] = df_lb['funding_end'] - df_lb['funding_start']
 
-  df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits_change'] + \
-      df_lb['withdrawals_change'] + \
+  df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits'] + \
+      df_lb['withdrawals'] + \
       df_lb['upnl_change'] + df_lb['funding_change']
   df_lb['pnl_pct'] = df_lb['pnl'] / \
-      (df_lb['margin_start'] + df_lb['upnl_start'] + df_lb['funding_start'] + df_lb['deposits_change']
+      (df_lb['margin_start'] + df_lb['freeMargin_start'] + df_lb['upnl_start'] + df_lb['funding_start'] + df_lb['deposits']
        ).apply(lambda x: max(500, x))
   
   # filter people with no volume
