@@ -508,7 +508,7 @@ async def main():
        ).apply(lambda x: max(500, x))
   
   # filter people with no volume
-  df_lb = df_lb[df_lb['volume_change'] > 250]
+  df_lb = df_lb[df_lb['volume_change'] >= 250]
 
   # add tier and rank
   df_lb['tier'] = df_lb['volume_change'].apply(get_trading_tier)
