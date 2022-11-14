@@ -435,7 +435,7 @@ async def main():
   ).fillna(0)
 
   # request free margin for the necessary accounts and merge
-  df_active_cm = df_lb.loc[((df_lb['crossMarginVolume_end'] - df_lb['crossMarginVolume_start']) > 0), :].merge(
+  df_active_cm = df_lb.loc[((df_lb['crossMarginVolume_end'] - df_lb['crossMarginVolume_start']) >= 250), :].merge(
     df_cm_account,
     left_on='account',
     right_on='accountOwner'
@@ -508,7 +508,7 @@ async def main():
        ).apply(lambda x: max(500, x))
   
   # filter people with no volume
-  df_lb = df_lb[df_lb['volume_change'] > 0]
+  df_lb = df_lb[df_lb['volume_change'] >= 250]
 
   # add tier and rank
   df_lb['tier'] = df_lb['volume_change'].apply(get_trading_tier)
