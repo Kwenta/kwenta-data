@@ -270,83 +270,83 @@ async def main():
 
   ## Get unrealized pnl from contracts
   # get list of open positions
-  upnl_results = {}
-  for block in lb_blocks:
-    params = {
-        'block_number': block,
-        'last_id': ''
-    }
+  # upnl_results = {}
+  # for block in lb_blocks:
+  #   params = {
+  #       'block_number': block,
+  #       'last_id': ''
+  #   }
 
-    print(f'FETCHING: open positions: block {block}')
-    open_position_response = await run_recursive_query(openPositionsBlock, params, 'futuresPositions')
-    df_positions = pd.DataFrame(open_position_response)
-    print(f'RECEIVED: open positions: block {block}: {df_positions.shape[0]} accounts')
+  #   print(f'FETCHING: open positions: block {block}')
+  #   open_position_response = await run_recursive_query(openPositionsBlock, params, 'futuresPositions')
+  #   df_positions = pd.DataFrame(open_position_response)
+  #   print(f'RECEIVED: open positions: block {block}: {df_positions.shape[0]} accounts')
 
-    # use multicall to get current unrealized pnl and funding
-    pnlCalls = [
-        Call(
-            row['market'],
-            ['profitLoss(address)(int256)', row['abstractAccount']],
-            [[f"{row['abstractAccount']},{row['market']}", convertDecimals]]
-        ) for _, row in df_positions.iterrows()
-    ]
+  #   # use multicall to get current unrealized pnl and funding
+  #   pnlCalls = [
+  #       Call(
+  #           row['market'],
+  #           ['profitLoss(address)(int256)', row['abstractAccount']],
+  #           [[f"{row['abstractAccount']},{row['market']}", convertDecimals]]
+  #       ) for _, row in df_positions.iterrows()
+  #   ]
 
-    fundingCalls = [
-        Call(
-            row['market'],
-            ['accruedFunding(address)(int256)', row['abstractAccount']],
-            [[f"{row['abstractAccount']},{row['market']}", convertDecimals]]
-        ) for _, row in df_positions.iterrows()
-    ]
+  #   fundingCalls = [
+  #       Call(
+  #           row['market'],
+  #           ['accruedFunding(address)(int256)', row['abstractAccount']],
+  #           [[f"{row['abstractAccount']},{row['market']}", convertDecimals]]
+  #       ) for _, row in df_positions.iterrows()
+  #   ]
 
-    pnlMulti = Multicall(
-        pnlCalls,
-        block_id=block,
-        _w3=w3
-    )
+  #   pnlMulti = Multicall(
+  #       pnlCalls,
+  #       block_id=block,
+  #       _w3=w3
+  #   )
 
-    fundingMulti = Multicall(
-        fundingCalls,
-        block_id=block,
-        _w3=w3
-    )
+  #   fundingMulti = Multicall(
+  #       fundingCalls,
+  #       block_id=block,
+  #       _w3=w3
+  #   )
 
-    print(f'FETCHING: open position pnl: block {block}')
-    pnlResult = pnlMulti()
-    print(f'RECEIVED: open position pnl: block {block}: {len(pnlResult)} accounts')
+  #   print(f'FETCHING: open position pnl: block {block}')
+  #   pnlResult = pnlMulti()
+  #   print(f'RECEIVED: open position pnl: block {block}: {len(pnlResult)} accounts')
 
-    print(f'FETCHING: open position funding: block {block}')
-    fundingResult = fundingMulti()
-    print(f'RECEIVED: open position funding: block {block}: {len(fundingResult)} accounts')
+  #   print(f'FETCHING: open position funding: block {block}')
+  #   fundingResult = fundingMulti()
+  #   print(f'RECEIVED: open position funding: block {block}: {len(fundingResult)} accounts')
 
-    # clean the pnl
-    pnlResult = [(k.split(',')[0], k.split(',')[1], v) for k, v in pnlResult.items()]
-    fundingResult = [(k.split(',')[0], k.split(',')[1], v) for k, v in fundingResult.items()]
+  #   # clean the pnl
+  #   pnlResult = [(k.split(',')[0], k.split(',')[1], v) for k, v in pnlResult.items()]
+  #   fundingResult = [(k.split(',')[0], k.split(',')[1], v) for k, v in fundingResult.items()]
 
-    df_pnl = pd.DataFrame.from_records(pnlResult, columns=['abstractAccount', 'market', 'upnl']).groupby('abstractAccount')[['upnl']].sum().reset_index()
-    df_funding = pd.DataFrame.from_records(fundingResult, columns=['abstractAccount', 'market', 'funding']).groupby('abstractAccount')[['funding']].sum().reset_index()
+  #   df_pnl = pd.DataFrame.from_records(pnlResult, columns=['abstractAccount', 'market', 'upnl']).groupby('abstractAccount')[['upnl']].sum().reset_index()
+  #   df_funding = pd.DataFrame.from_records(fundingResult, columns=['abstractAccount', 'market', 'funding']).groupby('abstractAccount')[['funding']].sum().reset_index()
 
-    df_pnl = df_pnl.merge(df_funding, on='abstractAccount').merge(df_cm_account, how='left', left_on='abstractAccount', right_on='crossMarginAccount')
+  #   df_pnl = df_pnl.merge(df_funding, on='abstractAccount').merge(df_cm_account, how='left', left_on='abstractAccount', right_on='crossMarginAccount')
 
-    # fix the account field
-    df_pnl['account'] = df_pnl.apply(lambda row: row['accountOwner'] if pd.notnull(
-        row['accountOwner']) else row['abstractAccount'], axis=1)
+  #   # fix the account field
+  #   df_pnl['account'] = df_pnl.apply(lambda row: row['accountOwner'] if pd.notnull(
+  #       row['accountOwner']) else row['abstractAccount'], axis=1)
 
-    df_pnl = df_pnl[[
-      'account',
-      'upnl',
-      'funding'
-    ]].groupby('account').sum().reset_index()
+  #   df_pnl = df_pnl[[
+  #     'account',
+  #     'upnl',
+  #     'funding'
+  #   ]].groupby('account').sum().reset_index()
 
-    upnl_results[block] = df_pnl
+  #   upnl_results[block] = df_pnl
 
   ## Calculate the leaderboard
   # get the start and end data
   start_lb_df = lb_results[lb_blocks[0]]
   end_lb_df = lb_results[lb_blocks[1]]
 
-  start_pnl_df = upnl_results[lb_blocks[0]]
-  end_pnl_df = upnl_results[lb_blocks[1]]
+  # start_pnl_df = upnl_results[lb_blocks[0]]
+  # end_pnl_df = upnl_results[lb_blocks[1]]
 
   # merge together
   df_lb = start_lb_df.merge(
@@ -356,18 +356,18 @@ async def main():
       suffixes=('_start', '_end')
   )
 
-  df_upnl = start_pnl_df.merge(
-      end_pnl_df,
-      on='account',
-      how='outer',
-      suffixes=('_start', '_end')
-  )
+  # df_upnl = start_pnl_df.merge(
+  #     end_pnl_df,
+  #     on='account',
+  #     how='outer',
+  #     suffixes=('_start', '_end')
+  # )
 
-  df_lb = df_lb.merge(
-      df_upnl,
-      how='outer',
-      on='account'
-  ).fillna(0)
+  # df_lb = df_lb.merge(
+  #     df_upnl,
+  #     how='outer',
+  #     on='account'
+  # ).fillna(0)
 
   # calculated fields
   df_lb['volume_change'] = df_lb['totalVolume_end'] - df_lb['totalVolume_start']
@@ -378,15 +378,19 @@ async def main():
   df_lb['deposits_change'] = df_lb['deposits_end'] - df_lb['deposits_start']
   df_lb['withdrawals_change'] = df_lb['withdrawals_end'] - \
       df_lb['withdrawals_start']
-  df_lb['upnl_change'] = df_lb['upnl_end'] - df_lb['upnl_start']
-  df_lb['funding_change'] = df_lb['funding_end'] - df_lb['funding_start']
+  df_lb['upnl_change'] = 0
+  df_lb['funding_change'] = 0
 
   df_lb['pnl'] = df_lb['margin_change'] - df_lb['deposits_change'] + \
       df_lb['withdrawals_change'] + \
       df_lb['upnl_change'] + df_lb['funding_change']
+  # df_lb['pnl_pct'] = df_lb['pnl'] / \
+  #     (df_lb['margin_start'] + df_lb['upnl_start'] + df_lb['funding_start'] + df_lb['deposits_change']
+  #      ).apply(lambda x: max(500, x))
   df_lb['pnl_pct'] = df_lb['pnl'] / \
-      (df_lb['margin_start'] + df_lb['upnl_start'] + df_lb['funding_start'] + df_lb['deposits_change']
+      (df_lb['margin_start'] + df_lb['deposits_change']
        ).apply(lambda x: max(500, x))
+
   
   # filter people with no volume
   df_lb = df_lb[df_lb['crossMarginVolume_change'] >= 99]
