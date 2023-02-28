@@ -130,7 +130,9 @@ dmypy.json
 
 # data
 /data
+/src/notebooks/output/
 
 # npm
 node_modules/
 .env.local
+.DS_STORE
