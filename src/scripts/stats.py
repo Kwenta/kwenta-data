@@ -167,9 +167,10 @@ async def main():
   print(f'combined result size: {df_write.shape[0]}')
 
   # make sure the directory exists
-  outdir = 'data/stats'
-  if not os.path.exists(outdir):
-    os.mkdir(outdir)
+  outdirs = ['data', 'data/stats']
+  for outdir in outdirs:
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
   # write out json data
   df_write.to_json(
