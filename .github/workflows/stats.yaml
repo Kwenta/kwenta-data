@@ -5,7 +5,7 @@ on:
     - cron:  '*/30 * * * *'
 
 jobs:
-  export_leaderboard:
+  export_stats:
     runs-on: ubuntu-latest
 
     steps:
