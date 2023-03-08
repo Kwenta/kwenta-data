@@ -1,0 +1,30 @@
+name: stats export
+
+on: 
+  schedule:
+    - cron:  '*/30 * * * *'
+
+jobs:
+  export_leaderboard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - run: npm i
+      - run: pip install -r requirements.txt
+      - run: python src/scripts/stats.py
+        env:
+          INFURA_KEY: ${{ secrets.INFURA_KEY }}
+      - run: npm run upload
+        env:
+          FLEEK_API_KEY: ${{ secrets.FLEEK_API_KEY }}
+          FLEEK_API_SECRET: ${{ secrets.FLEEK_API_SECRET }}
