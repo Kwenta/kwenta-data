@@ -23,7 +23,7 @@
     "dotenv": "^16.0.1",
     "ethereum-block-by-date": "^1.4.5",
     "ethers": "^5.6.8",
-    "ipfs-core": "^0.15.2",
+    "ipfs-core": "^0.18.0",
     "ipfs-http-client": "^57.0.1"
   }
 }
