@@ -1,0 +1,38 @@
+{
+    "table_name": "trades",
+    "graphql_entity": "futuresTrades",
+    "fields": {
+        "id": "TEXT PRIMARY KEY",
+        "account": "TEXT",
+        "timestamp": "INTEGER",
+        "asset": "TEXT",
+        "marketKey": "TEXT",
+        "orderType": "TEXT",
+        "price": "INTEGER",
+        "margin": "INTEGER",
+        "positionId": "TEXT",
+        "feesPaid": "INTEGER",
+        "pnl": "INTEGER",
+        "size": "INTEGER",
+        "positionSize": "INTEGER",
+        "positionClosed": "BOOLEAN"
+    },
+    "graphql_types": {
+        "id": "string",
+        "account": "string",
+        "timestamp": "number",
+        "asset": "bytes",
+        "marketKey": "bytes",
+        "orderType": "string",
+        "price": "decimal",
+        "margin": "decimal",
+        "positionId": "string",
+        "feesPaid": "decimal",
+        "pnl": "decimal",
+        "size": "decimal",
+        "positionSize": "decimal",
+        "positionClosed": "boolean"
+    },
+    "graphql_url": "https://api.thegraph.com/subgraphs/name/tburm/optimism-perps",
+    "database_file": "./data/perps.db"
+}
