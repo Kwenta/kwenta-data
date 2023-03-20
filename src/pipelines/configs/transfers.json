@@ -1,0 +1,24 @@
+{
+    "table_name": "transfers",
+    "graphql_entity": "futuresMarginTransfers",
+    "fields": {
+        "id": "TEXT PRIMARY KEY",
+        "account": "TEXT",
+        "timestamp": "INTEGER",
+        "asset": "TEXT",
+        "size": "INTEGER",
+        "market": "TEXT",
+        "txHash": "TEXT"
+    },
+    "graphql_types": {
+        "id": "string",
+        "account": "string",
+        "timestamp": "number",
+        "asset": "bytes",
+        "size": "decimal",
+        "market": "string",
+        "txHash": "string"
+    },
+    "graphql_url": "https://api.thegraph.com/subgraphs/name/tburm/optimism-perps",
+    "database_file": "./data/perps.db"
+}

@@ -1,0 +1,24 @@
+{
+    "table_name": "funding_rates",
+    "graphql_entity": "fundingRateUpdates",
+    "fields": {
+        "id": "TEXT PRIMARY KEY",
+        "timestamp": "INTEGER",
+        "asset": "TEXT",
+        "marketKey": "TEXT",
+        "funding": "INTEGER",
+        "fundingRate": "INTEGER",
+        "sequenceLength": "INTEGER"
+    },
+    "graphql_types": {
+        "id": "string",
+        "timestamp": "number",
+        "asset": "bytes",
+        "marketKey": "bytes",
+        "funding": "decimal",
+        "fundingRate": "decimal",
+        "sequenceLength": "number"
+    },
+    "graphql_url": "https://api.thegraph.com/subgraphs/name/tburm/optimism-perps",
+    "database_file": "./data/perps.db"
+}
