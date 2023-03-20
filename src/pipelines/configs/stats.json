@@ -1,0 +1,26 @@
+{
+    "table_name": "stats",
+    "graphql_entity": "futuresStats",
+    "fields": {
+        "id": "TEXT PRIMARY KEY",
+        "account": "TEXT",
+        "totalTrades": "INTEGER",
+        "totalVolume": "INTEGER",
+        "feesPaid": "INTEGER",
+        "pnl": "INTEGER",
+        "pnlWithFeesPaid": "INTEGER",
+        "liquidations": "INTEGER"
+    },
+    "graphql_types": {
+        "id": "string",
+        "account": "string",
+        "totalTrades": "number",
+        "totalVolume": "decimal",
+        "feesPaid": "decimal",
+        "pnl": "decimal",
+        "pnlWithFeesPaid": "decimal",
+        "liquidations": "number"
+    },
+    "graphql_url": "https://api.thegraph.com/subgraphs/name/tburm/optimism-perps",
+    "database_file": "./data/perps.db"
+}

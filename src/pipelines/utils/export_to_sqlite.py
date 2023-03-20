@@ -3,10 +3,10 @@ import json
 import sqlite3
 import argparse
 import pandas as pd
-from decimal import Decimal
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 import nest_asyncio
+from utils import convertBytes, convertDecimals, clean_df
 
 nest_asyncio.apply()
 
@@ -20,25 +20,6 @@ def create_table(cursor, table_name, fields):
     fields_sql = ', '.join([f"{key} {value}" for key, value in fields.items()])
     cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
     cursor.execute(f"CREATE TABLE {table_name} ({fields_sql})")
-
-# functions
-def convertDecimals(x): 
-    try:
-        return float(Decimal(x) / Decimal(10**18))
-    except:
-        return x
-
-def convertBytes(x): return bytearray.fromhex(
-    x[2:]).decode().replace('\x00', '')
-
-def clean_df(df, types):
-    for col in df.columns:
-        type = types[col]
-        if type == 'decimal':
-            df[col] = df[col].apply(convertDecimals)
-        elif type == 'bytes':
-            df[col] = df[col].apply(convertBytes)
-    return df
 
 
 async def run_query(query, params, url):
