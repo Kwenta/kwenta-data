@@ -13,38 +13,52 @@ class SmartContract:
         self.contract = self.web3.eth.contract(
             address=self.contract_address, abi=self.abi)
 
-    def call_function(self, function_name: str, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
+        self.abi_map = {
+            abi_entry["name"]: abi_entry
+            for abi_entry in self.abi if abi_entry["type"] == "function"
+        }
+
+    def cast_output_types(self, raw_result, output_abi):
+        if "components" not in output_abi:
+            return raw_result
+
+        if output_abi["type"].startswith("tuple"):
+            return {
+                (sub_abi["name"] or str(i)): self.cast_output_types(item, sub_abi)
+                for i, (item, sub_abi) in enumerate(zip(raw_result, output_abi["components"]))
+            }
+        elif output_abi["type"].startswith("array"):
+            return [
+                self.cast_output_types(item, output_abi["components"][0])
+                for item in raw_result
+            ]
+        else:
+            return raw_result
+
+    def call_function(self, function_name: str, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         contract_function = self.contract.get_function_by_name(function_name)
-        output_types, output_names = self.get_output_types_and_names(
-            function_name)
+        output_abi = self.abi_map[function_name]["outputs"]
 
         raw_result = contract_function(*args, **kwargs).call()
 
         if not isinstance(raw_result, tuple):
             raw_result = (raw_result,)
 
-        typed_result = self.cast_output_types(raw_result, output_types)
+        result = self.cast_output_types(raw_result, output_abi)
 
-        if all(output_name == '' for output_name in output_names):
-            output_names = [f'arg{i}' for i in range(1, len(output_names) + 1)]
+        return result
 
-        result_list = [dict(zip(output_names, res))
-                       for res in zip(*typed_result)]
-
-        return result_list
-
-    def cast_output_types(self, raw_result: Tuple[Any], output_types: List[str]) -> List[List[Any]]:
-        def cast_single_value(value: Any, output_type: str) -> Any:
-            if output_type.startswith("uint"):
-                return int(value)
-            elif output_type == "address":
-                return str(value)
-            elif output_type.startswith("bytes"):
-                return bytes(value)
-            else:
-                return value
-
-        return [[cast_single_value(value, output_type) for value in values] for values, output_type in zip(raw_result, output_types)]
+    def cast_single_value(self, value: Any, output_type: str) -> Any:
+        if output_type.startswith("uint"):
+            return int(value)
+        elif output_type == "address":
+            return str(value)
+        elif output_type.startswith("bytes"):
+            return bytes(value).rstrip(b'\x00').decode()
+        elif output_type.endswith("[]"):
+            return [self.cast_single_value(item, output_type[:-2]) for item in value]
+        else:
+            return value
 
     def get_output_types_and_names(self, function_name: str) -> Tuple[List[str], List[str]]:
         function_abi = next(

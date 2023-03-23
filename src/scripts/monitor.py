@@ -28,6 +28,10 @@ w3 = Web3(Web3.HTTPProvider(RPC_ENDPOINT))
 
 async def main():
   perpsData = SmartContract(PerpsV2DataAbi, PerpsV2DataAddress, RPC_ENDPOINT)
+  
+  globals = perpsData.call_function('globals')
+  print(globals, '\n')
+
   marketSummaries = perpsData.call_function('allProxiedMarketSummaries')
   print(marketSummaries)
   pass
