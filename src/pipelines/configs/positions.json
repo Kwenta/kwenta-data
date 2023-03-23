@@ -51,6 +51,6 @@
         "totalVolume": "decimal",
         "lastTxHash": "string"
     },
-    "graphql_url": "https://api.thegraph.com/subgraphs/name/tburm/optimism-perps",
+    "graphql_url": "https://api.thegraph.com/subgraphs/name/kwenta/optimism-perps",
     "database_file": "./data/perps.db"
 }
