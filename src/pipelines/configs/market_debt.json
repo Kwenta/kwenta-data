@@ -1,0 +1,11 @@
+{
+    "table_name": "market_debt",
+    "fields": {
+        "id": "TEXT PRIMARY KEY",
+        "block": "INTEGER",
+        "timestamp": "INTEGER",
+        "asset": "TEXT",
+        "market_debt": "INTEGER"
+    },
+    "database_file": "./data/perps.db"
+}
