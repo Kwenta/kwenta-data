@@ -13,6 +13,6 @@ refresh:
 backfill-debt:
 	python ./src/pipelines/market_debt.py --config ./src/pipelines/configs/market_debt.json --backfill true --from 82845694 --to 82846694 --increment 100
 debt:
-	python ./src/pipelines/market_debt.py --config ./src/pipelines/configs/market_debt.json --from 52456507 --to 83751205 --increment 50000
+	python ./src/pipelines/market_debt.py --config ./src/pipelines/configs/market_debt.json --from 85961660 --to 86218379 --increment 25000
 monitor:
 	python ./src/scripts/monitor.py
