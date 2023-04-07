@@ -28,6 +28,15 @@ def create_table(cursor, table_name, fields):
     cursor.execute(f"CREATE TABLE {table_name} ({fields_sql})")
 
 
+def get_last_block(conn, table_name):
+    df_last_block = pd.read_sql_query(
+        f"SELECT block FROM {table_name} ORDER BY block DESC LIMIT 1", conn)
+    if(df_last_block.shape[0] != 1):
+        last_block = ''
+    else:
+        last_block = df_last_block['block'][0]
+    return int(last_block)
+
 def get_market_debt(w3, block_number):
     # data contract
     with open('./src/abi/PerpsV2Data.json', 'r') as file:
@@ -68,9 +77,9 @@ async def main():
         description="Export marketDebt data from each market across blocks")
     parser.add_argument('-c', '--config', required=True,
                         help="Path to the JSON configuration file")
-    parser.add_argument('-f', '--from-block', required=True, type=int,
+    parser.add_argument('-f', '--from-block', required=False, type=int,
                         help="First block to check")
-    parser.add_argument('-t', '--to-block', required=True, type=int,
+    parser.add_argument('-t', '--to-block', required=False, type=int,
                         help="Last block to check")
     parser.add_argument('-i', '--increment', required=True, type=int,
                         help="Amount of blocks to increment per step")
@@ -84,12 +93,6 @@ async def main():
     fields = config['fields']
     field_names = fields.keys()
 
-    # Parse arguments
-    print(f"ARGS {args}")
-    from_block = args.from_block
-    to_block = args.to_block
-    increment = args.increment
-
     # Set up web3
     w3 = Web3(Web3.HTTPProvider(RPC_ENDPOINT))
     w3.middleware_onion.inject(geth_poa_middleware, layer=0)
@@ -97,6 +100,22 @@ async def main():
     # Connect to your SQLite database
     conn = sqlite3.connect(config['database_file'])
     cursor = conn.cursor()
+
+    # Parse arguments
+    print(f"ARGS {args}")
+    from_block = args.from_block
+    to_block = args.to_block
+    increment = args.increment
+
+    # If no from_block, get last synced block
+    if from_block is None:
+        from_block = get_last_block(conn, table_name)
+
+    # If no to_block, get most recent block
+    if to_block is None:
+        to_block = w3.eth.block_number
+    
+    print('ARGS: ', from_block, to_block, increment)
 
     # Set up tables if this is a backfill
     if(args.backfill == True):
