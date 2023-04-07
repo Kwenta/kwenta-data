@@ -35,7 +35,7 @@ def get_last_block(conn, table_name):
         last_block = ''
     else:
         last_block = df_last_block['block'][0]
-    return last_block
+    return int(last_block)
 
 def get_market_debt(w3, block_number):
     # data contract
@@ -109,8 +109,7 @@ async def main():
 
     # If no from_block, get last synced block
     if from_block is None:
-        last_block = get_last_block(conn, table_name)
-        from_block = int(last_block)
+        from_block = get_last_block(conn, table_name)
 
     # If no to_block, get most recent block
     if to_block is None:
