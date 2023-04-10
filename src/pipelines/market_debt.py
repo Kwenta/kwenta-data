@@ -56,7 +56,7 @@ def get_market_debt(w3, block_number):
 
     markets = [{
         'asset': market[1].decode().replace('\x00', ''),
-        'marketDebt': w3.fromWei(market[7], unit='ether'),
+        'marketDebt': w3.from_wei(market[7], unit='ether'),
     } for market in marketSummaries]
 
     if len(markets) > 0:
