@@ -1,0 +1,36 @@
+{
+    "table_name": "orders",
+    "graphql_entity": "futuresOrders",
+    "fields": {
+        "id": "TEXT PRIMARY KEY",
+        "size": "INTEGER",
+        "marketKey": "TEXT",
+        "account": "TEXT",
+        "txnHash": "TEXT",
+        "abstractAccount": "TEXT",
+        "orderId": "INTEGER",
+        "targetPrice": "INTEGER",
+        "marginDelta": "INTEGER",
+        "timestamp": "INTEGER",
+        "orderType": "TEXT",
+        "status": "TEXT",
+        "keeper": "TEXT"
+    },
+    "graphql_types": {
+        "id": "string",
+        "size": "decimal",
+        "marketKey": "string",
+        "account": "string",
+        "txnHash": "string",
+        "abstractAccount": "string",
+        "orderId": "number",
+        "targetPrice": "decimal",
+        "marginDelta": "decimal",
+        "timestamp": "number",
+        "orderType": "string",
+        "status": "string",
+        "keeper": "string"
+    },
+    "graphql_url": "https://api.thegraph.com/subgraphs/name/kwenta/optimism-perps",
+    "database_file": "./data/perps.db"
+}

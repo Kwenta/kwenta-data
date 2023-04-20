@@ -4,6 +4,8 @@
     "fields": {
         "id": "TEXT PRIMARY KEY",
         "account": "TEXT",
+        "abstractAccount": "TEXT",
+        "accountType": "TEXT",
         "asset": "TEXT",
         "initialMargin": "INTEGER",
         "size": "INTEGER",
@@ -29,6 +31,8 @@
     "graphql_types": {
         "id": "string",
         "account": "string",
+        "abstractAccount": "string",
+        "accountType": "string",
         "asset": "bytes",
         "initialMargin": "decimal",
         "size": "decimal",
