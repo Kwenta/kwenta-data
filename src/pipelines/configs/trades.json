@@ -4,6 +4,8 @@
     "fields": {
         "id": "TEXT PRIMARY KEY",
         "account": "TEXT",
+        "abstractAccount": "TEXT",
+        "accountType": "TEXT",
         "timestamp": "INTEGER",
         "asset": "TEXT",
         "marketKey": "TEXT",
@@ -20,6 +22,8 @@
     "graphql_types": {
         "id": "string",
         "account": "string",
+        "abstractAccount": "string",
+        "accountType": "string",
         "timestamp": "number",
         "asset": "bytes",
         "marketKey": "bytes",
