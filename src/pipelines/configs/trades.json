@@ -17,7 +17,8 @@
         "pnl": "INTEGER",
         "size": "INTEGER",
         "positionSize": "INTEGER",
-        "positionClosed": "BOOLEAN"
+        "positionClosed": "BOOLEAN",
+        "trackingCode": "TEXT"
     },
     "graphql_types": {
         "id": "string",
@@ -35,7 +36,8 @@
         "pnl": "decimal",
         "size": "decimal",
         "positionSize": "decimal",
-        "positionClosed": "boolean"
+        "positionClosed": "boolean",
+        "trackingCode": "bytes"
     },
     "graphql_url": "https://api.thegraph.com/subgraphs/name/kwenta/optimism-perps",
     "database_file": "./data/perps.db"
