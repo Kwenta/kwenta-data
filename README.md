@@ -13,11 +13,21 @@ Then, open `.env` and fill in the specified variables using your API keys.
 
 ## Scripts
 
-### Blocks (js)
-Retrieves block numbers between two specified timestamps. The resulting data will be used as "checkpoints" for calculations like the leaderboard.
+The folder `./src/scripts` contains useful scripts for retrieving and summarizing data. Scripts are run using [Github Actions](https://github.com/Kwenta/kwenta-data/tree/main/.github/workflows) scheduled workflows. They can be monitored [here](https://github.com/Kwenta/kwenta-data/actions)
 
-### Leaderboard (python)
-Retrieves an ordered list of traders by their profit and loss during the period. The resulting data will be used as the leaderboard for futures trading competitions.
+Utilities:
+* IPFS upload
 
-### Upload (js)
-Uploads all data in the `data` folder to the default Fleek storage bucket for your credentails.
+Currently running:
+* Daily stats export
+
+Deprecated:
+* Trading competition scripts
+* Leaderboard export script
+* Optimism quest scripts
+
+### IPFS Upload (js)
+Reads all files in the `./data` folder and uploads them to the `data` folder on fleek. This is used as the final job during data workflows to sync data to Fleek buckets.
+
+### Daily stats export (python)
+Creates a daily stats data file and saves it locally. The file is read by Kwenta to produce the [stats page](https://kwenta.eth.limo/stats).
