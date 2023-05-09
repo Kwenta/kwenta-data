@@ -4,7 +4,6 @@ import pandas as pd
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from decimal import Decimal
-from multicall import Call, Multicall
 from web3 import Web3
 import nest_asyncio
 
