@@ -1,7 +1,6 @@
 import os
 import asyncio
 import pandas as pd
-from datetime import datetime, timezone
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from decimal import Decimal
@@ -11,7 +10,7 @@ import nest_asyncio
 
 nest_asyncio.apply()
 
-## constants
+# constants
 INFURA_KEY = os.getenv('INFURA_KEY')
 
 # mainnet
@@ -21,7 +20,6 @@ RPC_ENDPOINT = f'https://optimism-mainnet.infura.io/v3/{INFURA_KEY}'
 # get a web3 provider
 w3 = Web3(Web3.HTTPProvider(RPC_ENDPOINT))
 
-# functions
 # functions
 
 
@@ -63,24 +61,24 @@ async def run_query(query, params, endpoint=SUBGRAPH_ENDPOINT):
 
 
 async def run_recursive_query(query, params, accessor, endpoint=SUBGRAPH_ENDPOINT):
-  transport = AIOHTTPTransport(url=endpoint)
+    transport = AIOHTTPTransport(url=endpoint)
 
-  async with Client(
-      transport=transport,
-      fetch_schema_from_transport=True,
-  ) as session:
-    done_fetching = False
-    all_results = []
-    while not done_fetching:
-      result = await session.execute(query, variable_values=params)
-      if len(result[accessor]) > 0:
-        all_results.extend(result[accessor])
-        params['last_id'] = all_results[-1]['id']
-      else:
-        done_fetching = True
+    async with Client(
+        transport=transport,
+        fetch_schema_from_transport=True,
+    ) as session:
+        done_fetching = False
+        all_results = []
+        while not done_fetching:
+            result = await session.execute(query, variable_values=params)
+            if len(result[accessor]) > 0:
+                all_results.extend(result[accessor])
+                params['last_id'] = all_results[-1]['id']
+            else:
+                done_fetching = True
 
-    df = pd.DataFrame(all_results)
-    return df
+        df = pd.DataFrame(all_results)
+        return df
 
 # queries
 aggregateStats = gql("""
@@ -122,61 +120,67 @@ query traders(
 }
 """)
 
+
 async def main():
-  # get aggregate data
-  agg_params = {
-      'last_id': ''
-  }
+    # get aggregate data
+    agg_params = {
+        'last_id': ''
+    }
 
-  agg_decimal_cols = [
-      'volume',
-      'feesSynthetix',
-      'feesKwenta'
-  ]
+    agg_decimal_cols = [
+        'volume',
+        'feesSynthetix',
+        'feesKwenta'
+    ]
 
-  agg_response = await run_recursive_query(aggregateStats, agg_params, 'futuresAggregateStats')
-  df_agg = pd.DataFrame(agg_response)
-  print(f'agg result size: {df_agg.shape[0]}')
-  df_agg = clean_df(df_agg, decimal_cols=agg_decimal_cols).drop(
-      'id', axis=1).sort_values('timestamp')
-  df_agg['timestamp'] = df_agg['timestamp'].astype(int)
-  df_agg['trades'] = df_agg['trades'].astype(int)
-  df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
+    agg_response = await run_recursive_query(aggregateStats, agg_params, 'futuresAggregateStats')
+    df_agg = pd.DataFrame(agg_response)
+    print(f'agg result size: {df_agg.shape[0]}')
+    df_agg = clean_df(df_agg, decimal_cols=agg_decimal_cols).drop(
+        'id', axis=1).sort_values('timestamp')
+    df_agg['timestamp'] = df_agg['timestamp'].astype(int)
+    df_agg['trades'] = df_agg['trades'].astype(int)
+    df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
 
-  # get trader data
-  trader_params = {
-      'last_id': ''
-  }
+    # get trader data
+    trader_params = {
+        'last_id': ''
+    }
 
-  trader_response = await run_recursive_query(traders, trader_params, 'futuresTrades')
-  df_trader = pd.DataFrame(trader_response).drop('id', axis=1).sort_values('timestamp')
+    trader_response = await run_recursive_query(traders, trader_params, 'futuresTrades')
+    df_trader = pd.DataFrame(trader_response).drop(
+        'id', axis=1).sort_values('timestamp')
 
-  # create the aggregates
-  df_trader['dateTs'] = df_trader['timestamp'].apply(lambda x: int(int(x) / 86400) * 86400)
-  df_trader['cumulativeTraders'] = (~df_trader['account'].duplicated()).cumsum()
+    # create the aggregates
+    df_trader['dateTs'] = df_trader['timestamp'].apply(
+        lambda x: int(int(x) / 86400) * 86400)
+    df_trader['cumulativeTraders'] = (
+        ~df_trader['account'].duplicated()).cumsum()
 
-  df_trader_agg = df_trader.groupby('dateTs')['account'].nunique().reset_index()
-  df_trader_agg.columns = ['timestamp', 'uniqueTraders']
-  df_trader_agg['cumulativeTraders'] = df_trader.groupby('dateTs')['cumulativeTraders'].max().reset_index()['cumulativeTraders']  
+    df_trader_agg = df_trader.groupby(
+        'dateTs')['account'].nunique().reset_index()
+    df_trader_agg.columns = ['timestamp', 'uniqueTraders']
+    df_trader_agg['cumulativeTraders'] = df_trader.groupby(
+        'dateTs')['cumulativeTraders'].max().reset_index()['cumulativeTraders']
 
-  print(f'trader result size: {df_trader.shape[0]}')
-  print(f'trader agg result size: {df_trader_agg.shape[0]}')
+    print(f'trader result size: {df_trader.shape[0]}')
+    print(f'trader agg result size: {df_trader_agg.shape[0]}')
 
-  # combine the two datasets
-  df_write = df_agg.merge(df_trader_agg, on='timestamp')
-  print(f'combined result size: {df_write.shape[0]}')
+    # combine the two datasets
+    df_write = df_agg.merge(df_trader_agg, on='timestamp')
+    print(f'combined result size: {df_write.shape[0]}')
 
-  # make sure the directory exists
-  outdirs = ['data', 'data/stats']
-  for outdir in outdirs:
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
+    # make sure the directory exists
+    outdirs = ['data', 'data/stats']
+    for outdir in outdirs:
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
 
-  # write out json data
-  df_write.to_json(
-      f'{outdir}/daily_stats.json',
-      orient='records'
-  )
+    # write out json data
+    df_write.to_json(
+        f'{outdir}/daily_stats.json',
+        orient='records'
+    )
 
 if __name__ == '__main__':
-  asyncio.run(main())
+    asyncio.run(main())
