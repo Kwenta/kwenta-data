@@ -54,7 +54,7 @@ jupyter-core==4.8.1
 jupyterlab-pygments==0.1.2
 jupyterlab-widgets==1.0.2
 kiwisolver==1.3.2
--e git+ssh://git@github.com/Kwenta/kwenta-python-sdk.git@f802d3574eae112ca1ccc21b90758f5e6c90d666#egg=kwenta&subdirectory=module
+kwenta
 lru-dict==1.1.8
 MarkupSafe==2.0.1
 matplotlib==3.4.3
