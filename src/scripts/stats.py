@@ -13,7 +13,7 @@ nest_asyncio.apply()
 INFURA_KEY = os.getenv('INFURA_KEY')
 
 # mainnet
-SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/kwenta/optimism-perps'
+SUBGRAPH_ENDPOINT = 'https://subgraph.satsuma-prod.com/05943208e921/kwenta/optimism-perps/api'
 RPC_ENDPOINT = f'https://optimism-mainnet.infura.io/v3/{INFURA_KEY}'
 
 # get a web3 provider
@@ -60,7 +60,12 @@ async def run_query(query, params, endpoint=SUBGRAPH_ENDPOINT):
 
 
 async def run_recursive_query(query, params, accessor, endpoint=SUBGRAPH_ENDPOINT):
-    transport = AIOHTTPTransport(url=endpoint)
+    # Request fails if this is not added to SATSUMA call's headers
+    headers = {
+        'origin': 'https://subgraph.satsuma-prod.com',
+    }
+
+    transport = AIOHTTPTransport(url=endpoint, headers=headers)
 
     async with Client(
         transport=transport,
