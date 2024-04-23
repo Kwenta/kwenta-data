@@ -170,7 +170,8 @@ async def main(config_key):
     os.makedirs(outdir, exist_ok=True)
 
     # Write out JSON data
-    df_write.to_json(f'{outdir}/daily_stats_{config_key}.json', orient='records')
+    filename = 'daily_stats.json' if config_key == 'v2' else f'daily_stats_{config_key}.json'
+    df_write.to_json(f'{outdir}/{filename}', orient='records')
 
     # Print results
     print(f'Combined result size for {config_key}: {df_write.shape[0]}')
