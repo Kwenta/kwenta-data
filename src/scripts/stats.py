@@ -15,7 +15,7 @@ INFURA_KEY = os.getenv('INFURA_KEY')
 # Stats configurations for different versions
 CONFIGS = {
     'v3': {
-        'subgraph_endpoint': 'https://subgraph.satsuma-prod.com/05943208e921/kwenta/base-perps-v3/version/0.0.15/api',
+        'subgraph_endpoint': 'https://subgraph.satsuma-prod.com/05943208e921/kwenta/base-perps-v3/api',
         'rpc_endpoint': f'https://base-mainnet.infura.io/v3/{INFURA_KEY}',
         'queries': {
             'aggregate_stats': {
