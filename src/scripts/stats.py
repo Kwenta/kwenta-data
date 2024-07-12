@@ -174,14 +174,16 @@ async def main(config_key):
     df_agg = clean_df(df_agg, decimal_cols=['volume', 'feesSynthetix', 'feesKwenta'] if config_key == 'v2' else ['volume']).drop('id', axis=1).sort_values('timestamp')
     df_agg['timestamp'] = df_agg['timestamp'].astype(int)
     df_agg['trades'] = df_agg['trades'].astype(int)
-    df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
 
     if config_key == 'perennial':
-        df_agg['volume'] = df_agg['longNotional'].astype(float) / 1000000 + df_agg['shortNotional'].astype(float) / 1000000
+        df_agg = df_agg.groupby('timestamp').max().reset_index()
+        df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
+        df_agg['volume'] = df_agg['longNotional'].astype(float) / 1_000_000 + df_agg['shortNotional'].astype(float) / 1_000_000
         df_agg['uniqueTraders'] = df_agg['traders'].astype(int)
         df_agg['cumulativeTraders'] = df_agg['uniqueTraders'].cumsum()
         df_write = df_agg[['timestamp', 'volume', 'trades', 'cumulativeTrades', 'uniqueTraders', 'cumulativeTraders']]
     else:
+        df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
         # Trader data query and processing
         trader_query = config['queries']['traders']
         df_trader = pd.DataFrame(await run_recursive_query(trader_query['query'], {'last_id': ''}, trader_query['accessor'], config['subgraph_endpoint'])).drop('id', axis=1).sort_values('timestamp')
