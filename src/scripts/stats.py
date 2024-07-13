@@ -101,6 +101,33 @@ CONFIGS = {
                 'accessor': 'futuresTrades'
             }
         }
+    },
+    'perennial': {
+        'subgraph_endpoint': 'https://subgraph.satsuma-prod.com/7ed49092fef1/equilibria/perennial-v2-arbitrum-new/api',
+        'rpc_endpoint': f'https://arbitrum-mainnet.infura.io/v3/{INFURA_KEY}',
+        'queries': {
+            'aggregate_stats': {
+                'query': gql("""
+                    query aggregateStats($last_id: Bytes!) {
+                        marketAccumulations(
+                            where: {
+                                id_gt: $last_id,
+                                bucket: daily,
+                            },
+                            first: 1000
+                        ) {
+                            id
+                            timestamp
+                            longNotional
+                            shortNotional
+                            trades
+                            traders
+                        }
+                    }
+                """),
+                'accessor': 'marketAccumulations'
+            },
+        }
     }
 }
 
@@ -148,22 +175,31 @@ async def main(config_key):
     df_agg = clean_df(df_agg, decimal_cols=['volume', 'feesSynthetix', 'feesKwenta'] if config_key == 'v2' else ['volume']).drop('id', axis=1).sort_values('timestamp')
     df_agg['timestamp'] = df_agg['timestamp'].astype(int)
     df_agg['trades'] = df_agg['trades'].astype(int)
-    df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
 
-    # Trader data query and processing
-    trader_query = config['queries']['traders']
-    df_trader = pd.DataFrame(await run_recursive_query(trader_query['query'], {'last_id': ''}, trader_query['accessor'], config['subgraph_endpoint'])).drop('id', axis=1).sort_values('timestamp')
-    df_trader['dateTs'] = df_trader['timestamp'].apply(lambda x: int(int(x) / 86400) * 86400)
-    df_trader['cumulativeTraders'] = (~df_trader['accountId' if config_key == 'v3' else 'account'].duplicated()).cumsum()
-    df_trader_agg = df_trader.groupby('dateTs')['accountId' if config_key == 'v3' else 'account'].nunique().reset_index()
-    df_trader_agg.columns = ['timestamp', 'uniqueTraders']
-    df_trader_agg['cumulativeTraders'] = df_trader.groupby('dateTs')['cumulativeTraders'].max().reset_index()['cumulativeTraders']
+    if config_key == 'perennial':
+        df_agg['volume'] = df_agg['longNotional'].astype(float) / 1_000_000 + df_agg['shortNotional'].astype(float) / 1_000_000
+        df_agg['uniqueTraders'] = df_agg['traders'].astype(int)
+        
+        df_agg = df_agg.groupby('timestamp').sum().reset_index()
+        df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
+        df_agg['cumulativeTraders'] = df_agg['uniqueTraders'].cumsum()
+        df_write = df_agg[['timestamp', 'volume', 'trades', 'cumulativeTrades', 'uniqueTraders', 'cumulativeTraders']]
+    else:
+        df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
+        # Trader data query and processing
+        trader_query = config['queries']['traders']
+        df_trader = pd.DataFrame(await run_recursive_query(trader_query['query'], {'last_id': ''}, trader_query['accessor'], config['subgraph_endpoint'])).drop('id', axis=1).sort_values('timestamp')
+        df_trader['dateTs'] = df_trader['timestamp'].apply(lambda x: int(int(x) / 86400) * 86400)
+        df_trader['cumulativeTraders'] = (~df_trader['accountId' if config_key == 'v3' else 'account'].duplicated()).cumsum()
+        df_trader_agg = df_trader.groupby('dateTs')['accountId' if config_key == 'v3' else 'account'].nunique().reset_index()
+        df_trader_agg.columns = ['timestamp', 'uniqueTraders']
+        df_trader_agg['cumulativeTraders'] = df_trader.groupby('dateTs')['cumulativeTraders'].max().reset_index()['cumulativeTraders']
 
-    print(f'trader result size: {df_trader.shape[0]}')
-    print(f'trader agg result size: {df_trader_agg.shape[0]}')
+        print(f'trader result size: {df_trader.shape[0]}')
+        print(f'trader agg result size: {df_trader_agg.shape[0]}')
 
-    # Combine the two datasets
-    df_write = df_agg.merge(df_trader_agg, on='timestamp')
+        # Combine the two datasets
+        df_write = df_agg.merge(df_trader_agg, on='timestamp')
 
     # Ensure directory exists
     outdir = f'data/stats'
@@ -179,3 +215,4 @@ async def main(config_key):
 if __name__ == '__main__':
     asyncio.run(main('v3'))
     asyncio.run(main('v2'))
+    asyncio.run(main('perennial'))
