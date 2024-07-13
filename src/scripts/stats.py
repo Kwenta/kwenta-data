@@ -177,10 +177,11 @@ async def main(config_key):
     df_agg['trades'] = df_agg['trades'].astype(int)
 
     if config_key == 'perennial':
-        df_agg = df_agg.groupby('timestamp').sum().reset_index()
-        df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
         df_agg['volume'] = df_agg['longNotional'].astype(float) / 1_000_000 + df_agg['shortNotional'].astype(float) / 1_000_000
         df_agg['uniqueTraders'] = df_agg['traders'].astype(int)
+        
+        df_agg = df_agg.groupby('timestamp').sum().reset_index()
+        df_agg['cumulativeTrades'] = df_agg['trades'].cumsum()
         df_agg['cumulativeTraders'] = df_agg['uniqueTraders'].cumsum()
         df_write = df_agg[['timestamp', 'volume', 'trades', 'cumulativeTrades', 'uniqueTraders', 'cumulativeTraders']]
     else:
