@@ -103,7 +103,7 @@ CONFIGS = {
         }
     },
     'perennial': {
-        'subgraph_endpoint': 'https://subgraph.satsuma-prod.com/baf55f08f701/equilibria/perennial-v2-arbitrum-new/api',
+        'subgraph_endpoint': 'https://subgraph.perennial.finance/arbitrum',
         'rpc_endpoint': f'https://arbitrum-mainnet.infura.io/v3/{INFURA_KEY}',
         'queries': {
             'aggregate_stats': {
