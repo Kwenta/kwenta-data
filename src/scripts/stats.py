@@ -288,10 +288,7 @@ async def main(config_key):
 
     # Write out JSON data
     filename = (
-        "daily_stats.json"
-        if config_key == "v2"
-        else f"daily_stats_{
-            config_key}.json"
+        "daily_stats.json" if config_key == "v2" else f"daily_stats_{config_key}.json"
     )
     df_write.to_json(f"{outdir}/{filename}", orient="records")
 
