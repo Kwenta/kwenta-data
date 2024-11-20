@@ -99,7 +99,7 @@ pyzmq==22.3.0
 qtconsole==5.1.1
 QtPy==1.11.2
 regex==2023.3.23
-requests==2.29.0
+requests==2.31.0
 rlp==2.0.1
 scikit-image==0.18.3
 scipy==1.7.1
