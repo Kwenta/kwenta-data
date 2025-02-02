@@ -300,4 +300,3 @@ if __name__ == "__main__":
     asyncio.run(main("v3"))
     asyncio.run(main("v3_arb"))
     asyncio.run(main("v2"))
-    asyncio.run(main("perennial"))

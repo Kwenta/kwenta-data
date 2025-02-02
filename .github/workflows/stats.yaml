@@ -26,5 +26,5 @@ jobs:
           INFURA_KEY: ${{ secrets.INFURA_KEY }}
       - run: npm run upload
         env:
-          FLEEK_API_KEY: ${{ secrets.FLEEK_API_KEY }}
-          FLEEK_API_SECRET: ${{ secrets.FLEEK_API_SECRET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
