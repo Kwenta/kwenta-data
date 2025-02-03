@@ -3,6 +3,10 @@ name: stats export
 on: 
   schedule:
     - cron:  '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      branch:
+        default: 'update-aws-upload'
 
 jobs:
   export_stats:
