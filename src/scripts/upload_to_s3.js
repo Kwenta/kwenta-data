@@ -30,7 +30,6 @@ async function uploadFilesToS3(path, filename) {
 const files = [
 	'daily_stats.json',
 	'daily_stats_v3.json',
-	'daily_stats_v3_arb.json',
 ]
 
 for (const file of files) {
