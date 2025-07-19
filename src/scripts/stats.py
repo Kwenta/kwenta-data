@@ -63,11 +63,6 @@ CONFIGS = {
         "rpc_endpoint": f"https://base-mainnet.infura.io/v3/{INFURA_KEY}",
         "queries": V3_Query,
     },
-    "v3_arb": {
-        "subgraph_endpoint": "https://subgraph.satsuma-prod.com/05943208e921/kwenta/arbitrum-one-perps-v3/api",
-        "rpc_endpoint": f"https://arbitrum-mainnet.infura.io/v3/{INFURA_KEY}",
-        "queries": V3_Query,
-    },
     "v2": {
         "subgraph_endpoint": "https://subgraph.satsuma-prod.com/05943208e921/kwenta/optimism-perps/api",
         "rpc_endpoint": f"https://optimism-mainnet.infura.io/v3/{INFURA_KEY}",
@@ -298,5 +293,4 @@ async def main(config_key):
 
 if __name__ == "__main__":
     asyncio.run(main("v3"))
-    asyncio.run(main("v3_arb"))
     asyncio.run(main("v2"))
